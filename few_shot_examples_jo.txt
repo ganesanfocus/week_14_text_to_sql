@@ -1,0 +1,142 @@
+User: List all contract service IDs that are accepted.
+SQL: SELECT lJoContractServiceID FROM JoContractServices WHERE bJoContractStatus = 1;
+
+User: Show total contract price and amount paid per contract.
+SQL:
+SELECT 
+  cs.lJoContractID, 
+  SUM(ps.ContractPrice) AS TotalPrice,
+  (SELECT SUM(p.dTotalAmount) 
+   FROM JoPayments p 
+   WHERE p.lJoContractID = cs.lJoContractID) AS TotalPaid
+FROM JoContractServices cs
+JOIN JOPriceSummary ps ON cs.lJoContractServiceID = ps.lJoContractServiceID
+WHERE cs.bJoContractStatus = 1
+GROUP BY cs.lJoContractID;
+
+User: List contract IDs where total payment is more than total price.
+SQL:
+SELECT cs.lJoContractID
+FROM JoContractServices cs
+JOIN JOPriceSummary ps ON cs.lJoContractServiceID = ps.lJoContractServiceID
+JOIN (
+    SELECT lJoContractID, SUM(dTotalAmount) AS TotalPaid
+    FROM JoPayments
+    GROUP BY lJoContractID
+) pay ON cs.lJoContractID = pay.lJoContractID
+WHERE pay.TotalPaid > ps.ContractPrice;
+
+User: what is the total paid amount of jocontracts, and give with customer paid  5000 and above with Customer Name
+SQL:
+select 
+  JTC.FirstName + JTC.LastName + JTC.sCompany + sCity AS CustomerName, 
+  dTotalAmount, 
+  jc.lJoContractID 
+from 
+  JoPayments JP 
+  inner join JoContracts JC ON JC.lJoContractID = Jp.lJoContractID 
+  INNER JOIN JCW_Todds_Customers JTC ON JTC.lCustomerID = JC.lCustomerID 
+where 
+  dTotalAmount >= 5000 
+group by 
+  jc.lCustomerID, 
+  jtc.FirstName, 
+  jtc.LastName, 
+  jtc.sCompany, 
+  sCity, 
+  dTotalAmount, 
+  jc.lJoContractID
+
+User: Can I get a list of all customers who have been assigned to 10 or more routes in JoContracts?
+SQL: 
+SELECT lCustomerId, COUNT(*) AS TotalRoutes FROM JoWorksheetCustomers GROUP BY lCustomerId HAVING COUNT(*) >= 10;
+
+User: how many jo customer added in multiple schedules provide over all count
+SQL:
+SELECT COUNT(*) AS MultipleScheduleAddedCustomers FROM (SELECT jwsc.lCustomerId FROM JoWorksheets jws JOIN JoWorksheetCustomers jwsc ON jwsc.lJoWorksheetId = jws.lJoWorksheetId GROUP BY jwsc.lCustomerId HAVING COUNT(DISTINCT jwsc.lJoWorksheetId) > 1 ) AS sub;
+
+User: what is the total paid amount of jocontracts  in Completed and Approved Status
+SQL:
+ WITH PaymentTotals AS (SELECT JP.lJoContractID,SUM(ISNULL(JP.dTotalAmount, 0)) AS JoTotalPaidAmount FROM JoPayments JP WHERE JP.dTotalAmount IS NOT NULL AND JP.dPaymentDate IS NOT NULL  GROUP BY JP.lJoContractID),ValidContracts AS ( SELECT DISTINCT JC.lJoContractID FROM JoContracts JC WHERE jc.lJoStatus = 1 or jc.lJoStatus = 3),UniqueCustomers AS ( SELECT lJoContractID, MIN(lJoWorksheetCustomerId) AS MinCustomerId FROM JoWorksheetCustomers GROUP BY lJoContractID ), JOTotalCompletedPayments AS (SELECT PT.JoTotalPaidAmount,PT.lJoContractID FROM PaymentTotals PT INNER JOIN ValidContracts VC ON  VC.lJoContractID = PT.lJoContractID INNER JOIN UniqueCustomers UC ON UC.lJoContractID = PT.lJoContractID)SELECT  SUM(JoTotalPaidAmount) AS JOTotalCompletedPayments FROM JOTotalCompletedPayments
+
+User: List customers with 10 or more routes and include their details.
+SQL:
+SELECT
+  jwc.lCustomerId,
+  jtc.FirstName,
+  jtc.LastName,
+  jtc.sCompany,
+  COUNT(*) AS TotalRoutes
+FROM JoWorksheetCustomers jwc
+LEFT JOIN JCW_Todds_Customers jtc ON jwc.lCustomerId = jtc.lCustomerID
+GROUP BY jwc.lCustomerId
+HAVING COUNT(*) >= 10;
+
+User: How many JoWorksheetTrucks are assigned to JoContracts scheduled for today?
+SQL:
+SELECT COUNT(DISTINCT jwt.lJoWorkSheetTruckId) AS TotalTrucks
+FROM JoWorksheetTrucks jwt
+JOIN JoWorksheetCustomers jwc ON jwt.lJoWorksheetCustomerId = jwc.lJoWorksheetCustomerId
+JOIN JoWorksheets jw ON jwc.lJoWorksheetId = jw.lJoWorksheetId
+WHERE CAST(jw.dScheduled AS DATE) = CAST(GETDATE() AS DATE);
+
+User: How many JO's that has created from leads ?
+SQL:
+select * from JoContracts where lRequestID is not null
+
+User: Show the leads name list ?
+SQL:
+Select lRequestID, dbo.GetLead_FullName(lRequestID) /* function to retrieve lead name */ from JCW_Requests
+
+User: List of all JO contracts
+SQL:
+SELECT
+  jc.lJoContractID AS [Contract ID],
+  jc.lCustomerID AS [Customer ID],
+  case when jc.lRequestID is not null then dbo.GetLead_FullName(jc.lRequestID) else 
+  COALESCE (c.sCompany + ' - ', '') + COALESCE (c.FirstName + ' ', '') + COALESCE (c.LastName, '') + ' ' + COALESCE (c.sCity, '')  end AS [Customer Name],
+  jc.JobName AS [Job Name],
+  jc.lSalesPersonID AS [Sales Person ID],
+  CONCAT(sp.sFirstName, ' ', sp.sLastName) AS [Sales Person Name],
+  jc.lProjectManagerID AS [Project Manager ID],
+  CONCAT(pm.sFirstName, ' ', pm.sLastName) AS [Project Manager Name],
+  jc.dStart AS [Start Date],
+  jc.dEnd AS [End Date],
+  jc.IsActive AS [Is Active],
+  jc.lRequestID AS [Request ID],
+  jc.lScheduleStatusTypeID AS [Schedule Status Type ID],
+  sst.sScheduleStatusType AS [Schedule Status Type], 
+  case when jc.lJoStatus in(0,1) then 'Quoted' when jc.lJoStatus = 2 then 'Sold' else 'Completed' end AS [Job Status]
+FROM
+  JoContracts jc
+LEFT JOIN JCW_Todds_Customers c ON jc.lCustomerID = c.lCustomerID
+LEFT JOIN JCW_Users sp ON jc.lSalesPersonID = sp.lUserId
+LEFT JOIN JCW_Users pm ON jc.lProjectManagerID = pm.lUserId
+LEFT JOIN ScheduleStatusTypes sst ON jc.lScheduleStatusTypeID = sst.lScheduleStatusTypeID;
+
+User: Get distinct count of drivers  assigned to each JoContract
+SQL:
+SELECT  JWC.lJoContractID,COUNT(DISTINCT JWTD.lJoDriverId) AS TotalDrivers FROM  JoWorksheetCustomers JWC
+JOIN  JoWorksheetTrucks JWT ON JWC.lJoWorksheetCustomerId = JWT.lJoWorksheetCustomerId
+JOIN JoWorksheetTruckDrivers JWTD ON JWT.lJoWorkSheetTruckId = JWTD.lJoWorkSheetTruckId
+GROUP BY JWC.lJoContractID;
+
+User: How many sold JOs are there in prescheduler ?
+SQL:
+SELECT COUNT(*) AS TotalSoldJOsInPrescheduleStage
+FROM JoContracts jc
+WHERE jc.lJoStatus = 2 AND jc.lScheduleStatusTypeID  NOT IN (SELECT lScheduleStatusTypeID  FROM ScheduleStatusTypes
+WHERE bActive = 1 AND sScheduleStatusType IN ('LIVE', 'Ready for Reviewing'));
+
+User: How many sold Jos are there in schedule planner ?
+SQL:
+SELECT COUNT(*) 
+FROM JoContracts JC 
+JOIN JCW_Todds_Customers C ON C.lCustomerID = JC.lCustomerID 
+LEFT JOIN ScheduleStatusTypes SST ON SST.lScheduleStatusTypeID = JC.lScheduleStatusTypeID 
+WHERE JC.lJoStatus = 2 
+AND JC.lScheduleStatusTypeID IN (
+    SELECT lScheduleStatusTypeID 
+    FROM ScheduleStatusTypes 
+    WHERE bActive = 1 AND sScheduleStatusType = 'LIVE')
+

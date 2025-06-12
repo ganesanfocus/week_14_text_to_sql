@@ -1,0 +1,187 @@
+-- JoContracts
+  - lJoContractID
+  - lCustomerID              -- NOT NULL: Indicates job was created from a customer
+  - JobName
+  - lSalesPersonID           /* lUserID in Jcw_Users */
+  - lProjectManagerID        /* lUserID in Jcw_Users */
+  - dStart
+  - dEnd
+  - IsActive                 /* 0= Inactive, 1= Active, 2= On Hold, 3= Paused */
+  - lRequestID               -- NOT NULL: Indicates job was created from a leads /* lRequestID in JCW_Requests*/
+  - lJoStatus                /* Quoted =  in  (0, 1), Sold = 2, Completed = 3 */
+  - lScheduleStatusTypeID    /* lScheduleStatusTypeID in ScheduleStatusTypes */
+
+-- JoContractServices
+  - lJoContractServiceID
+  - lJoContractID
+  - lJoServiceID
+  - JoServiceName
+  - bJoContractStatus        /* Accepted = 1 */
+  - bCompleted               /* Submitted = 1, Unsubmitted = 0 */
+
+-- JOPriceSummary
+  - JOPriceSummaryID
+  - lJoContractServiceID
+  - ContractPrice
+  - dFixedContractPrice
+
+-- JoPayments
+  - lJoContractID
+  - sPaymentNo
+  - dTotalAmount
+  - dPercentage
+  - dPaymentDate
+  - bPercentage              /* bPercentage = 1 => dPercentage value exists */
+
+-- JoContractLawnServices
+  - lJoContractLawnServiceId
+  - lJoContractServiceID
+  - lSiteConditionId
+  - lSeedingMethodId
+  - dLawnMeasurement
+  - dGradingAmount
+  - dSurfacePrepAmount
+  - dSeedingAmount
+
+-- JoContractServiceProducts
+  - lJoContractServiceProductID
+  - lJoContractServiceID
+  - lInventoryProductID
+  - dQuantity
+  - dPrice
+  - lProductAttributeID
+
+-- JoContractHaulingProducts
+  - lJoContractHaulingProductID
+  - lJoContractServiceID
+  - lJoInventorySectionCategoryID
+  - dQuantity
+  - dHaulingPrice
+
+-- JOMiscellaneousProducts
+  - lJOMiscellaneousProductID
+  - lJoContractServiceID
+  - sProductName
+  - dProductQuantity
+  - dProductPrice
+
+-- ScheduleStatusTypes
+  - lScheduleStatusTypeID  /* 1000=Live, 1001=Needs Permit, 1002=Needs Mid Dig, 1003=Ready for Scheduling, 1004=Ready for Reviewing */
+  - sScheduleStatusType
+  - sScheduleStatusNote
+  - bActive
+
+-- JoDeckpermitProducts
+  - lJoDeckpermitProductsId
+  - lJoContractServiceID
+  - sProductName
+  - dQuantity
+  - dTotal
+
+-- JoContractLightServiceProducts
+  - lJoContractLightServiceProductId
+  - lJoContractServiceID
+  - sProductName
+  - dQuantity
+  - dPrice
+
+-- JoWorksheets
+  - lJoWorksheetId
+  - sJoWorksheetName
+  - dScheduled
+  - bActive
+
+-- JoWorksheetCustomers
+  - lJoWorksheetCustomerId
+  - lJoWorksheetId
+  - sDaysOut
+  - lJoContractID
+
+-- JoWorksheetTrucks
+  - lJoWorkSheetTruckId
+  - lJoWorksheetCustomerId
+  - lJoTruckId    /* IVehicleID in vehicles*/
+
+-- JoWorksheetForemans
+  - lJoWorksheetForemanId
+  - lJoWorksheetCustomerId
+  - lForemanId              /* lUserID in Jcw_Users */
+
+-- JCW_Todds_Customers
+  - lCustomerID
+  - FirstName
+  - LastName
+  - sCompany
+  - sCity
+  - CleanAddress
+
+-- WorksheetCrews
+  - lWorksheetCrewId
+  - lEmployeeID             /* lUserId in JCW_Users */
+  - lJoWorksheetCustomerId  /* Ref table JoWorksheetCustomers */
+
+-- JCW_Users
+  - lUserId
+  - sFirstName
+  - sLastName
+
+-- EmployeeTimeTypes
+  - lEmployeeTimeTypeID
+  - sEmployeeTimeType
+
+-- EmployeeTimes
+  - lEmployeeTimeTypeID     /* lEmployeeTimeTypeID in EmployeeTimeTypes */
+  - lReferenceID            /* lWorksheetCrewId in WorksheetCrews if sEmployeeTimeType = 'JO Times' */
+  - dStartTime
+  - dEndTime
+  - lSupervisorApprovedStatusId  /* in SupervisorApprovedStatus */
+  - lPayrollStatusId             /* in PayrollStatus */
+
+-- SupervisorApprovedStatus
+  - lSupervisorApprovedStatusId
+  - lUserId
+  - sApprovedDate
+
+-- PayrollStatus
+  - lPayrollStatusId
+  - lUserId                   /* lUserId in JCW_Users */
+  - sApprovedDate
+
+-- JoContractLightServices
+  - lJoContractLightServicesId
+  - lJoContractServiceID
+  - dMarkUpValue
+
+-- JoPermitCheckListCategory
+   - lJoPermitChecklistCategoryID
+   - sJoPermitChecklistCategory
+
+-- JoPermitCheckList
+  - lJoPermitChecklistID
+  - lJoPermitChecklistCategoryID
+  - sJoPermitChecklist
+
+-- JoPermitCheckListProgress
+  - lJoPermitChecklistProgressID
+  - lJoContractID      /* lJoContractID in JoContracts */
+  - lJoPermitChecklistCategoryID    /* lJoPermitChecklistCategoryID in JoPermitCheckListCategory */
+
+
+-- JoPermitCheckListSelection
+  - lJoPermitChecklistSelectionID
+  - lJoPermitChecklistProgressID     /* lJoPermitChecklistProgressID in JoPermitCheckListProgress */
+  - lJoPermitChecklistID     /* lJoPermitChecklistID in JoPermitCheckListProgress */
+  - sValue
+  - bSkipped  /*skipped=1, not skipped = 0 */
+
+-- vehicles
+  - IVehicleID
+  - sVehicleName
+
+-- JCW_Requests
+  - lRequestID
+
+-- JoWorksheetTruckDrivers
+  - lJoWorkSheetTruckId /* lJoWorkSheetTruckId in JoWorksheetTrucks */
+  - lJoDriverId /* lUserId in JCW_Users */
+ 
